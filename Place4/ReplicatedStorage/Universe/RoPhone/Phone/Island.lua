@@ -79,6 +79,14 @@ function Island.new()
 	self.MediaContainer.Visible = false
 	self.MediaContainer.ZIndex = 2
 	
+	self.MediaBackground = Instance.new("Frame", self.MediaContainer)
+	self.MediaBackground.Name = "Background"
+	self.MediaBackground.AnchorPoint = Vector2.new(.5,.5)
+	self.MediaBackground.Position = UDim2.new(.5,0,.5,0)
+	self.MediaBackground.Size = UDim2.new(1,0,1,0)
+	self.MediaBackground.BackgroundTransparency = 1
+	self.MediaBackground.ZIndex = 1
+	
 	self.MediaTitle = Instance.new("TextLabel", self.MediaContainer)
 	self.MediaTitle.Name = "Title"
 	self.MediaTitle.AnchorPoint = Vector2.new(0,.5)
@@ -88,6 +96,7 @@ function Island.new()
 	self.MediaTitle.TextXAlignment = Enum.TextXAlignment.Left
 	self.MediaTitle.TextSize = 14
 	self.MediaTitle.Font = Enum.Font.BuilderSansBold
+	self.MediaTitle.ZIndex = 2
 	
 	self.MediaAuthor = Instance.new("TextLabel", self.MediaContainer)
 	self.MediaAuthor.Name = "Description"
@@ -98,12 +107,14 @@ function Island.new()
 	self.MediaAuthor.TextXAlignment = Enum.TextXAlignment.Left
 	self.MediaAuthor.TextSize = 10
 	self.MediaAuthor.Font = Enum.Font.BuilderSans
+	self.MediaAuthor.ZIndex = 2
 	
 	self.MediaIcon = Instance.new("ImageLabel", self.MediaContainer)
 	self.MediaIcon.Name = "Icon"
 	self.MediaIcon.AnchorPoint = Vector2.new(.5,.5)
 	self.MediaIcon.BackgroundColor3 = Color3.new(1,1,1)
 	self.MediaIcon.ScaleType = Enum.ScaleType.Fit
+	self.MediaIcon.ZIndex = 2
 
 	self.MediaIconRatio = Instance.new("UIAspectRatioConstraint", self.MediaIcon)
 	self.MediaIconRatio.AspectRatio = 1
@@ -115,6 +126,7 @@ function Island.new()
 	self.PlayIcon.Name = "PlayIcon"
 	self.PlayIcon.ScaleType = Enum.ScaleType.Fit
 	self.PlayIcon.BackgroundTransparency = 1
+	self.PlayIcon.ZIndex = 2
 	
 	self.ProgressContainer = Instance.new("CanvasGroup", self.MediaContainer)
 	self.ProgressContainer.Name = "ProgressContainer"
@@ -122,6 +134,7 @@ function Island.new()
 	self.ProgressContainer.Position = UDim2.new(.5,0,.65,0)
 	self.ProgressContainer.Size = UDim2.new(.8,0,.05,0)
 	self.ProgressContainer.BackgroundTransparency = 1
+	self.ProgressContainer.ZIndex = 2
 	
 	self.ProgressContainerCorner = Instance.new("UICorner", self.ProgressContainer)
 	self.ProgressContainerCorner.CornerRadius = UDim.new(1,0)
@@ -244,7 +257,7 @@ function Island:Notify(app, title: string, description: string, imageId: number,
 	repeat task.wait() until self.Completed
 end
 
-function Island:AddMedia(title: string, author: string, iconId: number, sound: Sound)
+function Island:AddMedia(title: string, author: string, iconId: number, soundId: number, themeColor: Color3?)
 	if self.MediaPlaying then
 		self.Sound:Stop()
 		self.Sound:Destroy()
@@ -252,8 +265,11 @@ function Island:AddMedia(title: string, author: string, iconId: number, sound: S
 		RunService:UnbindFromRenderStep("IslandMedia")
 	end
 	
-	self.Sound = sound
-	self.SoundChanged:Fire()
+	self.Sound = Instance.new("Sound")
+	self.Sound.SoundId = "rbxassetid://"..soundId
+	self.SoundChanged:Fire(self.Sound)
+	
+	self.Sound:Play()
 	
 	self.MediaPlaying = true
 	self.Click.Visible = false
@@ -343,7 +359,7 @@ function Island:AddMedia(title: string, author: string, iconId: number, sound: S
 	self.PlayIcon.Visible = true
 	self.MediaTitle.Visible = true
 	self.ProgressContainer.Visible = true
-	
+		
 	-- Display full
 	repeat task.wait() until self.Complete
 	
@@ -352,7 +368,7 @@ function Island:AddMedia(title: string, author: string, iconId: number, sound: S
 	self:LargeMedia()
 	
 	task.wait(CONFIG.NOTIFICATION_DURATION)
-	
+		
 	self.Click.Visible = true
 	
 	-- Desplay small
