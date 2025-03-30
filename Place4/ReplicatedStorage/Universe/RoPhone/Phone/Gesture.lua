@@ -22,7 +22,7 @@ function Gesture.new()
 	self.Corner = Instance.new("UICorner", self.Button)
 	self.Corner.CornerRadius = UDim.new(1,0)
 	
-	self.GestureClicked = self.Button.MouseButton1Click
+	self.ButtonClicked = self.Button.MouseButton1Click
 	
 	return self
 end
