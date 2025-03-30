@@ -5,25 +5,25 @@ local Volume = {}
 Volume.__index = Volume
 
 function Volume.new(defaultVolume: number)
-    local self = setmetatable({}, Volume)
-    
-    self.ButtonUp = Instance.new("TextButton")
-    self.ButtonDown = Instance.new("TextButton")
+	local self = setmetatable({}, Volume)
 
-    self.Level = defaultVolume or .5
-    self.Instances = {Sound}
+	self.ButtonUp = Instance.new("TextButton")
+	self.ButtonDown = Instance.new("TextButton")
 
-    self.Changed = Signal.new()
+	self.Level = defaultVolume or .5
+	self.Instances = {} :: {Sound}
 
-    return self
+	self.Changed = Signal.new()
+
+	return self
 end
 
 function Volume:Up(amount: number)
-    self.Changed:Fire()
+	self.Changed:Fire()
 end
 
 function Volume:Down(amount: number)
-    self.Changed:Fire()
+	self.Changed:Fire()
 end
 
 return Volume
