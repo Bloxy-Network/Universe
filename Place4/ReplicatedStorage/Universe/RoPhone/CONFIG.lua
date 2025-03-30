@@ -1,5 +1,8 @@
 local CONFIG = {}
 
+-- Device data
+CONFIG.DATA_REMOTE = nil						-- RemoteEvent that data will be passed through
+
 -- Device looks
 CONFIG.SIZE = UDim2.new(.2,0,.7,0) 				-- Size of phone (Constrained by AspectRatio)
 CONFIG.POSITION = UDim2.new(.5,0,.5,0) 			-- Position of phone on-screen
@@ -28,10 +31,11 @@ CONFIG.DOCK_COLOR = Color3.new(0,0,0)			-- Color of the Dock
 CONFIG.DOCK_APPS = 4							-- Max number of apps allowed in the Dock
 CONFIG.DOCK_PADDING = Vector2.new(.075, .3)		-- Padding (x,y) of app button to edge of Dock
 
-CONFIG.INFO_BAR_SIZE = Vector2.new(.25,.04)
-CONFIG.INFO_BAR_MARGIN = .015
-CONFIG.MAX_PAGES = 3
-CONFIG.DOT_SPACING = .2
+CONFIG.DYNAMIC_WALLPAPER = true					-- Wallpaper will move when swiping between homescreen pages
+
+CONFIG.INFO_BAR_SIZE = Vector2.new(.1,.04)		-- Size of the InfoBar
+CONFIG.INFO_BAR_MARGIN = .015					-- Margin from top of Dock to bottom of InfoBar
+CONFIG.DOT_SPACING = .05						-- Spacing between each dot in the InfoBar in scale
 
 CONFIG.MEDIA_PLAY_ID = 91627705357741			-- Play button image ID (Island media)
 CONFIG.MEDIA_PAUSE_ID = 105425577870678			-- Pause button image ID (Island media)
