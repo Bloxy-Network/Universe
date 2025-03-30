@@ -52,6 +52,6 @@ CONFIG.APP_TIMEOUT = 5							-- Time, in seconds, before OS.RegisterApp() quits 
 CONFIG.MEDIA_TIMEOUT = 5						-- Time, in seconds, that media needs to be paused to close the media player
 
 -- Customizables
-CONFIG.WALLPAPER_ID = 116568521810438			-- Default wallpaper image ID
+CONFIG.WALLPAPER_ID = 111000442439673			-- Default wallpaper image ID
 
 return CONFIG
