@@ -142,6 +142,10 @@ function OS.Initialize(player: Player, phoneSettings: PhoneSettings?, dataRemote
 	-- Set up island (pill at top of screen)
 	OS.Island = Island.new()
 	OS.Island.Frame.Parent = OS.Screen
+	
+	OS.Island.SoundChanged:Connect(function(sound: Sound)
+		sound.Parent = OS.Gui
+	end)
 
 	OS.IslandInset = CONFIG.ISLAND_MARGIN + CONFIG.ISLAND_SIZE.Y
 
@@ -151,7 +155,7 @@ function OS.Initialize(player: Player, phoneSettings: PhoneSettings?, dataRemote
 
 	OS.GestureInset = CONFIG.GESTURE_MARGIN + CONFIG.GESTURE_SIZE.Y
 
-	OS.Gesture.GestureClicked:Connect(function()
+	OS.Gesture.ButtonClicked:Connect(function()
 		for i, v in OS.Apps do
 			task.spawn(function()
 				v:CloseApp()
@@ -268,29 +272,6 @@ function OS.GetApp(searchParameter: string | CanvasGroup | GuiButton): typeof(Ap
 	end
 	
 	return app
-end
-
-function OS.PushNotification(app: App, title: string, description: string, imageId: number, islandSize: "Small" | "Large" | "Square")
-	local notificationSound = Instance.new("Sound", OS.Gui)
-	notificationSound.SoundId = "rbxassetid://"..OS.NotificationSound
-	notificationSound.Volume = OS.Volume.Level
-	notificationSound:Play()
-	
-	notificationSound.Ended:Connect(function()
-		notificationSound:Destroy()	
-	end)
-	
-	OS.Island:Notify(app, title, description, imageId, islandSize)
-end
-
-function OS.PlayMedia(title: string, author: string, iconId: number, soundId: number)
-	local newSound = Instance.new("Sound", OS.Gui)
-	newSound.SoundId = "rbxassetid://"..soundId
-	
-	newSound:Play()
-	OS.Island:AddMedia(title, author, iconId, newSound)
-	
-	return newSound
 end
 
 return OS
