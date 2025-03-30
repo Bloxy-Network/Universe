@@ -183,6 +183,7 @@ function OS.Initialize(player: Player, phoneSettings: PhoneSettings?, dataRemote
 	OS.MainGestureColor = Color3.new(1,1,1)
 	
 	OS.Spring = Spring
+	OS.GoodSignal = Signal
 end
 
 function OS.RegisterApp(name: string, frame: CanvasGroup, imageId: number, theme: "Light" | "Dark"): typeof(App.new())
