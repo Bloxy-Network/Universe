@@ -2,6 +2,9 @@
 
 local CONFIG = require(script.Parent.Parent.Parent:WaitForChild("CONFIG"))
 
+local dependencies = script.Parent.Parent:WaitForChild("Dependencies")
+local Signal = require(dependencies:WaitForChild("GoodSignal"))
+
 local Spring = require(script.Parent.Parent:WaitForChild("Spring"))
 
 local InfoBar = {}
@@ -30,8 +33,8 @@ function InfoBar.new()
 	
 	self.Dots = {}
 	
-	self.DotsContainerSize = UDim2.new((CONFIG.INFO_BAR_SIZE.X + (.2 * CONFIG.INFO_BAR_SIZE.X)) * CONFIG.INFO_BAR_SIZE.X + CONFIG.DOT_SPACING,0,CONFIG.INFO_BAR_SIZE.Y,0)
-	
+	self.DotAdded = Signal.new()
+		
 	return self
 end
 
@@ -39,9 +42,11 @@ function InfoBar:AddPageDot()
 	local newDot = Instance.new("TextButton", self.PageDots)
 	newDot.Size = UDim2.new(.2,0,.5,0)
 	newDot.AnchorPoint = Vector2.new(.5,.5)
+	newDot.Position = UDim2.new(1.5,0,.5,0)
 	newDot.BackgroundColor3 = Color3.new(1,1,1)
 	newDot.Text = ""
 	newDot.AutoButtonColor = false
+	newDot.BackgroundTransparency = .5
 
 	local corner = Instance.new("UICorner", newDot)
 	corner.CornerRadius = UDim.new(1,0)
@@ -52,20 +57,14 @@ function InfoBar:AddPageDot()
 	table.insert(self.Dots, newDot)
 
 	for i, v in ipairs(self.Dots) do
-		local initialPosX = 0
-		
-		for j, k in ipairs(self.Dots) do
-			initialPosX = k.Size.X.Scale * (j - 1)
-		end
-		
-		local finalPos = UDim2.new(self.Button.Position.X.Scale - initialPosX,0,.5,0)
-
-		local posSpring = Spring.new(newDot, 1.2, 3, {Position = finalPos})
+		local posSpring = Spring.new(v, 1.2, 3, {Position = UDim2.new(i/(#self.Dots+1), 0,.5,0)})
 		posSpring:Play()
 
-		local barSpring = Spring.new(self.Button, 1.2, 3, {Size = self.DotsContainerSize})
+		local barSpring = Spring.new(self.Button, 1.2, 3, {Size = UDim2.new(CONFIG.INFO_BAR_SIZE.X + (CONFIG.DOT_SPACING * (i - 1)), 0, CONFIG.INFO_BAR_SIZE.Y, 0)})
 		barSpring:Play()
 	end
+	
+	self.DotAdded:Fire(newDot, #self.Dots)
 end
 
 return InfoBar
