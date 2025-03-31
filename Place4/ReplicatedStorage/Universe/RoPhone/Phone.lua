@@ -71,15 +71,15 @@ function OS.Initialize(player: Player, phoneSettings: PhoneSettings?, dataRemote
 	OS.Frame.AnchorPoint = CONFIG.ANCHOR_POINT
 	OS.Frame.BackgroundColor3 = phoneSettings.PhoneColor
 
-	OS.FrameCorner = Instance.new("UICorner", OS.Frame)
-	OS.FrameCorner.CornerRadius = CONFIG.CORNER_RADIUS
+	local frameCorner = Instance.new("UICorner", OS.Frame)
+	frameCorner.CornerRadius = CONFIG.CORNER_RADIUS
 
-	OS.FrameRatio = Instance.new("UIAspectRatioConstraint", OS.Frame)
-	OS.FrameRatio.AspectRatio = CONFIG.ASPECT_RATIO
+	local frameAspectRatio = Instance.new("UIAspectRatioConstraint", OS.Frame)
+	frameAspectRatio.AspectRatio = CONFIG.ASPECT_RATIO
 
-	OS.FrameThick = Instance.new("UIStroke", OS.Frame)
-	OS.FrameThick.Thickness = CONFIG.THICKNESS
-	OS.FrameThick.Color = phoneSettings.PhoneColor
+	OS.Case = Instance.new("UIStroke", OS.Frame)
+	OS.Case.Thickness = CONFIG.THICKNESS
+	OS.Case.Color = phoneSettings.PhoneColor
 	
 	-- Set up volume and power buttons
 	OS.Volume = Volume.new(CONFIG.DEFAULT_VOLUME)
@@ -107,6 +107,7 @@ function OS.Initialize(player: Player, phoneSettings: PhoneSettings?, dataRemote
 	cornerDown.CornerRadius = UDim.new(1,0)
 
 	OS.PowerButton = Instance.new("TextButton", OS.Frame)
+	OS.PowerButton.Name = "PowerButton"
 	OS.PowerButton.AnchorPoint = Vector2.new(.5,.5)
 	OS.PowerButton.Position = UDim2.new(0-posX,0,.25,0)
 	OS.PowerButton.Size = UDim2.new(posX,0,.1,0)
@@ -124,18 +125,18 @@ function OS.Initialize(player: Player, phoneSettings: PhoneSettings?, dataRemote
 	OS.Screen.Size = UDim2.new(1,0,1,0)
 	OS.Screen.BackgroundColor3 = Color3.new(1,1,1)
 
-	OS.ScreenCorner = Instance.new("UICorner", OS.Screen)
-	OS.ScreenCorner.CornerRadius = CONFIG.CORNER_RADIUS
+	local screenCorner = Instance.new("UICorner", OS.Screen)
+	screenCorner.CornerRadius = CONFIG.CORNER_RADIUS
+
+	-- Create the lockscreen
+	OS.Lockscreen = Lockscreen.new()
+	OS.Lockscreen.Frame.Parent = OS.Screen
 	
 	-- Create a homescreen page
 	OS.Homescreen = Homescreen.new()
 	OS.Homescreen.Frame.Parent = OS.Screen
 	
 	OS.Homescreen:AddPage()
-
-	OS.Homescreen.PageAdded:Connect(function()
-		
-	end)
 
 	OS.CurrentPage = 1
 
@@ -162,7 +163,7 @@ function OS.Initialize(player: Player, phoneSettings: PhoneSettings?, dataRemote
 				
 				OS.Homescreen.Frame.Visible = true
 				
-				local newSpring = Spring.new(OS.Gesture.Button, 1, 5, {BackgroundTransparency = 1})
+				local newSpring = Spring.new(OS.Gesture.Button, 1, 5*OS.AnimationSpeed, {BackgroundTransparency = 1})
 				newSpring:Play()
 				
 				newSpring.Completed:Wait()
@@ -181,9 +182,18 @@ function OS.Initialize(player: Player, phoneSettings: PhoneSettings?, dataRemote
 	
 	OS.DeviceAspectRatio = phoneSettings.AspectRatio
 	OS.MainGestureColor = Color3.new(1,1,1)
+
+	OS.DeviceOn = false
+	OS.Locked = true
+	OS.Password = ""
 	
 	OS.Spring = Spring
 	OS.GoodSignal = Signal
+
+	-- Power functions
+	OS.PowerButton.MouseButton1Click:Connect(function()
+		
+	end)
 end
 
 function OS.RegisterApp(name: string, frame: CanvasGroup, imageId: number, theme: "Light" | "Dark"): typeof(App.new())
@@ -218,10 +228,10 @@ function OS.RegisterApp(name: string, frame: CanvasGroup, imageId: number, theme
 		OS.Gesture.Button.Visible = true
 		
 		if app.Theme == "Dark" then
-			local newSpring = Spring.new(OS.Gesture.Button, 1, 3, {BackgroundColor3 = Color3.new(1,1,1), BackgroundTransparency = 0})
+			local newSpring = Spring.new(OS.Gesture.Button, 1, 3*OS.AnimationSpeed, {BackgroundColor3 = Color3.new(1,1,1), BackgroundTransparency = 0})
 			newSpring:Play()
 		else
-			local newSpring = Spring.new(OS.Gesture.Button, 1, 3, {BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 0})
+			local newSpring = Spring.new(OS.Gesture.Button, 1, 3*OS.AnimationSpeed, {BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 0})
 			newSpring:Play()
 		end
 	end)
