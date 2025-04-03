@@ -14,6 +14,8 @@ function Swipe.new(frame: Frame | CanvasGroup)
 	local self = setmetatable({}, Swipe)
 	
 	self.Frame = frame
+
+	self.Hovering = false
 	
 	self.SwipeStarted = Signal.new()
 	self.SwipeEnded = Signal.new()
@@ -67,6 +69,33 @@ function Swipe.new(frame: Frame | CanvasGroup)
 		local acceleration = velocity/timeDelta
 		
 		self.Swiped:Fire(acceleration)
+	end)
+
+	local lastHover = 0
+
+	RunService.RenderStepped:Connect(function()
+		if not mouseDown then
+			local mouse = UserInputService:GetMouseLocation()
+			local pos = math.clamp((mouse.X - frame.AbsolutePosition.X)/frame.AbsoluteSize.X, 0, 1)
+
+			if pos < .1 or pos > .8 then
+				self.Hovering = true
+
+				lastHover = tick()
+				
+				-- Create hover animation/button
+
+				return
+			end
+
+			if tick() - lastHover >= 1 then
+				self.Hovering = false
+
+				-- Remove hover button
+
+				
+			end
+		end
 	end)
 	
 	return self
