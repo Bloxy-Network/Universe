@@ -25,4 +25,8 @@ These features are the highlight of our ecosystem, but there are many other smal
 While this project remains 100% free and open-source, we do put in a lot of time and effort, and any amount of support is greatly appreciated.
 * If you'd like to support us, you can visit our [Patreon]() or make a purchase with Robux from our [Donation Place]()
 
-## Thank you for supporting our project. Updates are made regularly. Welcome to the Universe.
+<div align="center">
+
+<h2>Thank you for supporting our project. Updates are made regularly. Welcome to the Universe.</h2>
+
+</div>
