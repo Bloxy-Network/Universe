@@ -27,6 +27,8 @@ While this project remains 100% free and open-source, we do put in a lot of time
 
 <div align="center">
 
-<h2>Thank you for supporting our project. Updates are made regularly. Welcome to the Universe.</h2>
+<h2>Thank you for supporting our project. Updates are made regularly.</h2>
+
+<h2>Welcome to the Universe.</h2>
 
 </div>
