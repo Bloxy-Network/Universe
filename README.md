@@ -4,6 +4,8 @@
 
 <h2>A Roblox Ecosystem</h2>
 
+<p>[Discord]() | [YouTube]() | [Instagram]() | [Patreon]() | [Trial Place]()</p>p
+
 </div>
 
 ## Our Mission
