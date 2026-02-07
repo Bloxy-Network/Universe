@@ -4,7 +4,7 @@
 
 <h2>A Roblox Ecosystem</h2>
 
-[Discord]() | [YouTube]() | [Instagram]() | [Patreon]() | [Trial Place]()
+[Discord](https://discord.gg/ztzb3hqwU8) | [YouTube](https://www.youtube.com/@bloxy.network) | [Instagram]() | [Patreon]() | [Trial Place]()
 
 </div>
 
