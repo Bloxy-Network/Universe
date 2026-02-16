@@ -1,5 +1,3 @@
--- @ScriptType: ModuleScript
-
 -- TYPES
 type PhoneSettings = {
 	PhoneColor: Color3,
