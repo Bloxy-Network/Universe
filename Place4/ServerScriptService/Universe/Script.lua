@@ -1,2 +1,0 @@
--- @ScriptType: Script
--- @ScriptType: Script
