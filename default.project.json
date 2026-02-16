@@ -1,0 +1,23 @@
+{
+  "name": "Universe",
+  "tree": {
+    "$className": "DataModel",
+
+    "ReplicatedStorage": {
+      "$path": "ReplicatedStorage",
+      "$ignoreUnknownInstances": true
+    },
+
+    "ServerScriptService": {
+      "$path": "ReplicServerScriptServiceatedStorage",
+      "$ignoreUnknownInstances": true
+    },
+
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "$path": "StarterPlayerScripts",
+        "$ignoreUnknownInstances": true
+      }
+    }
+  }
+}
