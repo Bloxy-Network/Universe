@@ -130,6 +130,18 @@ setmetatable(Signal, {
 local Spring = {}
 Spring.__index = Spring
 
+local function SettleTime(stiffness, damping, mass)
+	local epsilon = 0.01
+	local omega_n = math.sqrt(stiffness / mass)
+	local zeta = damping / (2 * math.sqrt(stiffness * mass))
+
+	if zeta == 0 then
+		return math.huge()
+	end
+
+	return -math.log(epsilon) / (zeta * omega_n)
+end
+
 function Spring.new(object: GuiObject, mass: number, stiffness: number, damping: number, properties: {[string]: any})
 	local self = setmetatable({}, Spring)
 
@@ -137,14 +149,15 @@ function Spring.new(object: GuiObject, mass: number, stiffness: number, damping:
 	self.Damping = damping
 	self.Stiffness = stiffness
 
-	self.PosVelocity = 0
-	self.SizeVelocity = 0
-	self.RotationVelocity = 0
-	self.AnchorPointVelocity = 0
-
+	self.Velocity = 0
 	self.Target = properties
-
 	self.Object = object
+
+	self.Time = 0
+	self.TimeLength = SettleTime(stiffness, damping, mass)
+
+	self.Finished = Signal.new()
+	self.Stopped = Signal.new()
 	
 	return self
 end
@@ -164,23 +177,34 @@ function Spring:SetTarget(properties:{[string]: any})
 	print(self.PosVelocity)
 end
 
-local function SpringAnimation(position, target, stiffness, damping, velocity, mass, dt)
-	local displacement = position - target
+local function SpringAnimation(start, target, stiffness, damping, velocity, mass, dt)
+	local displacement = start - target
 		
 	local springForce = -stiffness * displacement
 	local dampingForce = -damping * velocity
 
 	local acceleration = (springForce + dampingForce) / mass
 	velocity = velocity + acceleration * dt
-	position = position + velocity * dt
+	local position = start + velocity * dt
+
 	return position, velocity
 end
 
 function Spring:Play(graph: Frame?)
-	local spring = 0
-	local springTime = 0
+	local multiplier = 0
+	local values = {}
 
-	RunService.RenderStepped:Connect(function(deltaTime)
+	local connection = RunService.RenderStepped:Connect(function(deltaTime)		
+		multiplier, self.Velocity = SpringAnimation(multiplier, 1, self.Stiffness, self.Damping, self.Velocity, self.Mass, deltaTime) / 1
+		values[#values + 1] = multiplier
+		self.Time += deltaTime
+
+		if self.Time >= self.TimeLength then
+			connection:Disconnect()
+			self.Time = 0
+			self.Finished:Fire()
+		end
+		
 		for property, targetValue in pairs(self.Target) do
 			if self.Object[property] == nil then
 				continue
@@ -190,73 +214,45 @@ function Spring:Play(graph: Frame?)
 				continue
 			end
 
-			if property == "Position" then
-				local x1 = self.Object.Position.X.Scale
-				local x2 = self.Object.Position.X.Offset
-				local y1 = self.Object.Position.Y.Scale
-				local y2 = self.Object.Position.Y.Offset
+			if property == "Position" or property == "Size" then
+				local x1 = self.Object[property].X.Scale
+				local x2 = self.Object[property].X.Offset
+				local y1 = self.Object[property].Y.Scale
+				local y2 = self.Object[property].Y.Offset
 
-				local v1 = self.PosVelocity
-				local v2 = self.PosVelocity
-				local v3 = self.PosVelocity
-				local v4 = self.PosVelocity
+				local d1 = targetValue.X.Scale - x1
+				local d2 = targetValue.X.Offset - x2
+				local d3 = targetValue.Y.Scale - y1
+				local d4 = targetValue.Y.Offset - y2
 
-				x1, v1 = SpringAnimation(x1, targetValue.X.Scale, self.Stiffness, self.Damping, v1, self.Mass, deltaTime)
-				x2, v2 = SpringAnimation(x2, targetValue.X.Offset, self.Stiffness, self.Damping, v2, self.Mass, deltaTime)
-				y1, v3 = SpringAnimation(y1, targetValue.Y.Scale, self.Stiffness, self.Damping, v3, self.Mass, deltaTime)
-				y2, v4 = SpringAnimation(y2, targetValue.Y.Offset, self.Stiffness, self.Damping, v4, self.Mass, deltaTime)
+				local s1 = x1 + (d1 * multiplier)
+				local s2 = x2 + (d2 * multiplier)
+				local s3 = y1 + (d3 * multiplier)
+				local s4 = y2 + (d4 * multiplier)
 
-				self.PosVelocity = (v1 + v2 + v3 + v4) / 4
-				self.Object.Position = UDim2.new(x1, x2, y1, y2)
+				self.Object[property] = UDim2.new(s1, s2, s3, s4)
 			end
 
 			if property == "AnchorPoint" then
 				local x, y = self.Object.AnchorPoint.X, self.Object.AnchorPoint.Y
+
+				local d1 = targetValue.X - x
+				local d2 = targetValue.Y - y
+
+				local s1 = x + (d1 * multiplier)
+				local s2 = y + (d2 * multiplier)
 				
-				local v1, v2 = self.AnchorPointVelocity, self.AnchorPointVelocity
-
-				x, v1 = SpringAnimation(x, targetValue.X, self.Stiffness, self.Damping, v1, self.Mass, deltaTime)
-				y, v2 = SpringAnimation(y, targetValue.Y, self.Stiffness, self.Damping, v2, self.Mass, deltaTime)
-
-				self.AnchorPointVelocity = (v1 + v2) / 2
-				self.Object.AnchorPoint = Vector2.new(x, y)
+				self.Object.AnchorPoint = Vector2.new(s1, s2)
 			end
 
 			if property == "Rotation" then
 				local rotation = self.Object.Rotation
+				local d1 = targetValue - rotation
+				local s1 = rotation + (d1 * multiplier)
 				
-				local v1 = self.RotationVelocity
-
-				rotation, v1 = SpringAnimation(rotation, targetValue, self.Stiffness, self.Damping, v1, self.Mass, deltaTime)
-				
-				self.RotationVelocity = v1
-				self.Object.Rotation = rotation
-			end
-
-			if property == "Size" then
-				local x1 = self.Object.Size.X.Scale
-				local x2 = self.Object.Size.X.Offset
-				local y1 = self.Object.Size.Y.Scale
-				local y2 = self.Object.Size.Y.Offset
-
-				local v1 = self.SizeVelocity
-				local v2 = self.SizeVelocity
-				local v3 = self.SizeVelocity
-				local v4 = self.SizeVelocity
-
-				x1, v4 = SpringAnimation(x1, targetValue.X.Scale, self.Stiffness, self.Damping, v1, self.Mass, deltaTime)
-				x2, v1 = SpringAnimation(x2, targetValue.X.Offset, self.Stiffness, self.Damping, v2, self.Mass, deltaTime)
-				y1, v2 = SpringAnimation(y1, targetValue.Y.Scale, self.Stiffness, self.Damping, v3, self.Mass, deltaTime)
-				y2, v3 = SpringAnimation(y2, targetValue.Y.Offset, self.Stiffness, self.Damping, v4, self.Mass, deltaTime)
-
-				self.SizeVelocity = (v1 + v2 + v3 + v4) / 4
-				self.Object.Size = UDim2.new(x1, x2, y1, y2)
+				self.Object.Rotation = s1
 			end
 		end
-
-		spring = SpringAnimation(spring, 1, self.Stiffness, self.Damping, 0, self.Mass, deltaTime)
-		
-		springTime += deltaTime
 
 		if graph then
 			local dot = Instance.new("Frame", graph)
@@ -271,7 +267,7 @@ function Spring:Play(graph: Frame?)
 			local ratio = Instance.new("UIAspectRatioConstraint", dot)
 			ratio.AspectRatio = 1
 
-			dot.Position = UDim2.new(springTime*.1, 0, 1-spring, 0)
+			dot.Position = UDim2.new(self.Time*.1, 0, 1-multiplier, 0)
 		end
 	end)
 end
