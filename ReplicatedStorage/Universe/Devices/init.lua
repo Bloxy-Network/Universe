@@ -284,10 +284,29 @@ function RoPhone.new(phoneFrame: Frame, screen: CanvasGroup)
 	self.PhoneFrame = phoneFrame
 	self.Screen = screen
 
+	self.Lockscreen = nil
+	self.Password = nil
+	self.Island = nil
+
+	self.Apps = {}
+
 	self.Notifications = {}
 	self.PushedNotification = Signal.new()
 
 	return self
+end
+
+function RoPhone:CreateApp(appName: string, appFrame: CanvasGroup, appImage: number)
+	local app = {
+		Name = appName,
+		Frame = appFrame,
+		ImageId = appImage
+	}
+
+	local appId = #self.Apps + 1
+
+	self.Apps[appId] = app
+	return appId
 end
 
 function RoPhone:CreateLockscreen(lockscreen: CanvasGroup, password: string?)
