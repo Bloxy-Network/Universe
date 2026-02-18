@@ -2,8 +2,6 @@ local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 local UserInputService = game:GetService("UserInputService")
 
-local CONFIG = require(script:WaitForChild("CONFIG"))
-
 local viewport = Workspace.CurrentCamera.ViewportSize
 
 local freeRunnerThread = nil
@@ -320,4 +318,11 @@ function RoPhone:CreateNotification(appId: number, message: string, imageId: num
 	})
 end
 
-return RoPhone
+local Device = {}
+Device.__index = Device
+
+function Device.CreatePhone(phoneFrame: Frame, screen: CanvasGroup)
+	return RoPhone.new(phoneFrame, screen)
+end
+
+return Device
