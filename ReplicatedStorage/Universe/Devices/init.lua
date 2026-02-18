@@ -156,6 +156,8 @@ function Spring.new(object: GuiObject, mass: number, stiffness: number, damping:
 	self.Time = 0
 	self.TimeLength = SettleTime(stiffness, damping, mass)
 
+	self.Connection = nil
+
 	self.Finished = Signal.new()
 	self.Stopped = Signal.new()
 	
@@ -194,13 +196,14 @@ function Spring:Play(graph: Frame?)
 	local multiplier = 0
 	local values = {}
 
-	local connection = RunService.RenderStepped:Connect(function(deltaTime)		
+	self.Connection = RunService.RenderStepped:Connect(function(deltaTime)		
 		multiplier, self.Velocity = SpringAnimation(multiplier, 1, self.Stiffness, self.Damping, self.Velocity, self.Mass, deltaTime) / 1
 		values[#values + 1] = multiplier
 		self.Time += deltaTime
 
 		if self.Time >= self.TimeLength then
-			connection:Disconnect()
+			self.Connection:Disconnect()
+			self.Connection = nil
 			self.Time = 0
 			self.Finished:Fire()
 		end
@@ -282,6 +285,7 @@ function RoPhone.new(phoneFrame: Frame, screen: CanvasGroup)
 	self.Screen = screen
 
 	self.Notifications = {}
+	self.PushedNotification = Signal.new()
 
 	return self
 end
