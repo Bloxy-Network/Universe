@@ -4,6 +4,7 @@ local UserInputService = game:GetService("UserInputService")
 
 local viewport = Workspace.CurrentCamera.ViewportSize
 
+-- GoodSignal implementation
 local freeRunnerThread = nil
 
 local function acquireRunnerThreadAndCallEventHandler(fn, ...)
@@ -125,6 +126,7 @@ setmetatable(Signal, {
 	end,
 })
 
+-- Spring motion implementation
 local Spring = {}
 Spring.__index = Spring
 
