@@ -275,6 +275,47 @@ function Spring:Play(graph: Frame?)
 	end)
 end
 
+local App = {}
+App.__index = App
+
+function App.new(appName: string, appFrame: CanvasGroup, appImageId: number)
+	local self = setmetatable({}, App)
+
+	self.Name = appName
+	self.Frame = appFrame
+	self.ImageId = appImageId
+
+	self.Open = false
+	self.Minimized = false
+	self.Closed = true
+
+	return self
+end
+
+function App:Open()
+	self.Frame.Visible = true
+
+	self.Open = true
+	self.Minimized = false
+	self.Closed = false
+end
+
+function App:Minimize()
+	self.Frame.Visible = false
+
+	self.Open = false
+	self.Minimized = true
+	self.Closed = false
+end
+
+function App:Close()
+	self.Frame.Visible = false
+
+	self.Open = false
+	self.Minimized = false
+	self.Closed = true
+end
+
 local RoPhone = {}
 RoPhone.__index = RoPhone
 
@@ -289,6 +330,7 @@ function RoPhone.new(phoneFrame: Frame, screen: CanvasGroup)
 	self.Island = nil
 
 	self.Apps = {}
+	self.OpenedApps = {}
 
 	self.Notifications = {}
 	self.PushedNotification = Signal.new()
@@ -296,12 +338,8 @@ function RoPhone.new(phoneFrame: Frame, screen: CanvasGroup)
 	return self
 end
 
-function RoPhone:CreateApp(appName: string, appFrame: CanvasGroup, appImage: number)
-	local app = {
-		Name = appName,
-		Frame = appFrame,
-		ImageId = appImage
-	}
+function RoPhone:CreateApp(appName: string, appFrame: CanvasGroup, appImage: number): number
+	local app = App.new(appName, appFrame, appImage)
 
 	local appId = #self.Apps + 1
 
@@ -309,7 +347,7 @@ function RoPhone:CreateApp(appName: string, appFrame: CanvasGroup, appImage: num
 	return appId
 end
 
-function RoPhone:CreateLockscreen(lockscreen: CanvasGroup, password: string?)
+function RoPhone:CreateLockscreen(lockscreen: CanvasGroup, password: number?)
 	if self.Lockscreen ~= nil then
 		warn("Lockscreen already exists for this RoPhone instance")
 		return
@@ -343,11 +381,39 @@ function RoPhone:CreateNotification(appId: number, message: string, imageId: num
 	})
 end
 
+function RoPhone:UpdatePassword(password: number)
+	self.Password = password
+end
+
+local RoWatch = {}
+RoWatch.__index = RoWatch
+
+function RoWatch.new(watchFrame: Frame)
+	local self = setmetatable({}, RoWatch)
+
+	self.WatchFrame = watchFrame
+
+	return self
+end
+
+function RoWatch:PushNotification()
+	
+end
+
+local RoHome = {}
+RoHome.__index = RoHome
+
+function RoHome.new()
+	
+end
+
 local Device = {}
 Device.__index = Device
 
 function Device.CreatePhone(phoneFrame: Frame, screen: CanvasGroup)
 	return RoPhone.new(phoneFrame, screen)
 end
+
+
 
 return Device
