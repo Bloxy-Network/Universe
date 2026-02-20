@@ -315,6 +315,53 @@ function Spring:Play(graph: Frame?)
 	end)
 end
 
+local Grid = {}
+Grid.__index = Grid
+
+local viewportSize = workspace.CurrentCamera.ViewportSize
+
+function Grid.new(container: Frame | CanvasGroup, gridSize: Vector2)
+	local self = setmetatable({}, Grid)
+
+	self.GridSize = gridSize
+
+	self.Container = container
+	self.Objects = {}
+
+	return self
+end
+
+function Grid:AddObject(object: GuiObject)
+	local objectSizeX = object.Size.X.Scale
+	local objectSizeY = object.Size.Y.Scale
+
+	-- Convert offset size to scale size and add to scale size
+	objectSizeX += object.Size.X.Offset / viewportSize.X
+	objectSizeY += object.Size.Y.Offset / viewportSize.Y
+
+	-- Ensure anchor point is centered for the object
+	object.AnchorPoint = Vector2.new(.5,.5)
+
+	-- Rounded tile size, always an integer
+	local objectSize = Vector2.new(
+		math.round(objectSizeX*self.GridSize.X),
+		math.round(objectSizeY*self.GridSize.Y)
+	)
+
+	-- Update object size to match rounded tile size
+	object.Size = UDim2.fromScale(objectSize.X/self.GridSize.X, objectSize.Y/self.GridSize.Y)
+
+	-- Add object to objects table
+	self.Objects[object] = {
+		TileSize = objectSize,
+		Position = UDim2.fromScale(0,0)
+	}
+end
+
+function Grid:UpdateSize(gridSize: Vector2)
+	self.GridSize = gridSize
+end
+
 local App = {}
 App.__index = App
 
