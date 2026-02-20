@@ -130,31 +130,60 @@ setmetatable(Signal, {
 local Spring = {}
 Spring.__index = Spring
 
-local function SettleTime(stiffness, damping, mass)
-	local epsilon = 0.01
-	local omega_n = math.sqrt(stiffness / mass)
-	local zeta = damping / (2 * math.sqrt(stiffness * mass))
+local function SpringDuration(start, target, velocity, response, damping)
+	local epsilon = 0.001
 
-	if zeta == 0 then
-		return math.huge()
+	local displacement = start - target
+
+	local omega = 2 * math.pi / response
+
+	if damping >= 1 then
+		return math.log(math.abs(displacement) / epsilon) / omega
 	end
 
-	return -math.log(epsilon) / (zeta * omega_n)
+	local dampedOmega = omega * math.sqrt(1 - damping^2)
+	local peakAmp = math.sqrt(displacement^2 + ((velocity + damping * omega * displacement) / dampedOmega)^2)
+
+	return math.log(peakAmp / epsilon) / (damping * omega)
 end
 
-function Spring.new(object: GuiObject, mass: number, stiffness: number, damping: number, properties: {[string]: any})
+local function SpringAnimation(start, target, velocity, response, damping, dt)
+	local displacement = start - target
+
+	local omega = 2 * math.pi / response
+
+	local expTerm = math.exp(-damping * omega * dt)
+
+	local cosTerm, sinTerm
+	if damping < 1 then
+		local dampedOmega = omega * math.sqrt(1 - damping^2)
+		cosTerm = math.cos(dampedOmega * dt)
+		sinTerm = math.sin(dampedOmega * dt)
+
+		local coeff = (velocity + damping * omega * displacement) / dampedOmega
+
+		displacement = expTerm * (displacement * cosTerm + coeff * sinTerm)
+		velocity = expTerm * (velocity * (cosTerm - damping * omega * sinTerm/dampedOmega) - displacement * omega * sinTerm * dampedOmega)
+	else
+		displacement = expTerm * (displacement + (velocity + omega * displacement) * dt)
+		velocity = expTerm * (velocity - omega * (velocity + omega * displacement) * dt)
+	end
+
+	return target + displacement, velocity
+end
+
+function Spring.new(object: GuiObject, response: number, damping: number, properties: {[string]: any})
 	local self = setmetatable({}, Spring)
 
-	self.Mass = mass
+	self.Response = response
 	self.Damping = damping
-	self.Stiffness = stiffness
 
 	self.Velocity = 0
 	self.Target = properties
 	self.Object = object
 
 	self.Time = 0
-	self.TimeLength = SettleTime(stiffness, damping, mass)
+	self.TimeLength = SpringDuration(0, 1, self.Velocity, self.Response, self.Damping)
 
 	self.Connection = nil
 
@@ -175,35 +204,20 @@ function Spring:SetTarget(properties:{[string]: any})
 
 		self.Target[property] = targetValue
 	end
-
-	print(self.PosVelocity)
-end
-
-local function SpringAnimation(start, target, stiffness, damping, velocity, mass, dt)
-	local displacement = start - target
-		
-	local springForce = -stiffness * displacement
-	local dampingForce = -damping * velocity
-
-	local acceleration = (springForce + dampingForce) / mass
-	velocity = velocity + acceleration * dt
-	local position = start + velocity * dt
-
-	return position, velocity
 end
 
 function Spring:Play(graph: Frame?)
-	local multiplier = 0
-	local values = {}
+	local velocities = {}
+	local graphY = 0
+	local graphV = 0
 
-	self.Connection = RunService.RenderStepped:Connect(function(deltaTime)		
-		multiplier, self.Velocity = SpringAnimation(multiplier, 1, self.Stiffness, self.Damping, self.Velocity, self.Mass, deltaTime) / 1
-		values[#values + 1] = multiplier
+	self.Connection = RunService.RenderStepped:Connect(function(deltaTime)
 		self.Time += deltaTime
 
 		if self.Time >= self.TimeLength then
 			self.Connection:Disconnect()
 			self.Connection = nil
+			print(self.Time)
 			self.Time = 0
 			self.Finished:Fire()
 		end
@@ -223,45 +237,71 @@ function Spring:Play(graph: Frame?)
 				local y1 = self.Object[property].Y.Scale
 				local y2 = self.Object[property].Y.Offset
 
-				local d1 = targetValue.X.Scale - x1
-				local d2 = targetValue.X.Offset - x2
-				local d3 = targetValue.Y.Scale - y1
-				local d4 = targetValue.Y.Offset - y2
+				local s1, s2, s3, s4 = 0, 0, 0, 0
+				local v1, v2, v3, v4 = 0, 0, 0, 0
 
-				local s1 = x1 + (d1 * multiplier)
-				local s2 = x2 + (d2 * multiplier)
-				local s3 = y1 + (d3 * multiplier)
-				local s4 = y2 + (d4 * multiplier)
+				for i, v in pairs(velocities) do
+					if i == property then
+						v1, v2, v3, v4 = unpack(v)
+						break
+					end
+				end
+
+				s1, v1 = SpringAnimation(x1, targetValue.X.Scale, v1, self.Response, self.Damping, deltaTime)
+				s2, v2 = SpringAnimation(x2, targetValue.X.Offset, v2, self.Response, self.Damping, deltaTime)
+				s3, v3 = SpringAnimation(y1, targetValue.Y.Scale, v3, self.Response, self.Damping, deltaTime)
+				s4, v4 = SpringAnimation(y2, targetValue.Y.Offset, v4, self.Response, self.Damping, deltaTime)
+
+				velocities[property] = {v1,v2,v3,v4}
 
 				self.Object[property] = UDim2.new(s1, s2, s3, s4)
 			end
 
 			if property == "AnchorPoint" then
-				local x, y = self.Object.AnchorPoint.X, self.Object.AnchorPoint.Y
+				local x = self.Object.AnchorPoint.X
+				local y = self.Object.AnchorPoint.Y
 
-				local d1 = targetValue.X - x
-				local d2 = targetValue.Y - y
+				local s1, s2 = 0, 0
+				local v1, v2 = 0, 0
 
-				local s1 = x + (d1 * multiplier)
-				local s2 = y + (d2 * multiplier)
+				for i, v in pairs(velocities) do
+					if i == property then
+						v1, v2 = unpack(v)
+						break
+					end
+				end
+
+				s1, v1 = SpringAnimation(x, targetValue.X, v1, self.Response, self.Damping, deltaTime)
+				s2, v2 = SpringAnimation(y, targetValue.Y, v2, self.Response, self.Damping, deltaTime)
 				
+				velocities[property] = {v1, v2}
 				self.Object.AnchorPoint = Vector2.new(s1, s2)
 			end
 
 			if property == "Rotation" then
 				local rotation = self.Object.Rotation
-				local d1 = targetValue - rotation
-				local s1 = rotation + (d1 * multiplier)
+				local s1, v1 = 0, 0
+
+				for i, v in pairs(velocities) do
+					if i == property then
+						v1 = v[1]
+						break
+					end
+				end
 				
+				s1, v1 = SpringAnimation(rotation, targetValue, v1, self.Response, self.Damping, deltaTime)
+				velocities[property] = {v1}
 				self.Object.Rotation = s1
 			end
 		end
+
+		graphY, graphV = SpringAnimation(graphY, 1, graphV, self.Response, self.Damping, deltaTime)
 
 		if graph then
 			local dot = Instance.new("Frame", graph)
 			dot.BackgroundColor3 = Color3.new(1, 0, 0)
 			dot.BorderSizePixel = 0
-			dot.Size = UDim2.new(.0025, 0, 0.025, 0)
+			dot.Size = UDim2.new(.025, 0, 0.05, 0)
 			dot.AnchorPoint = Vector2.new(0.5, 0.5)
 
 			local corner = Instance.new("UICorner", dot)
@@ -270,7 +310,7 @@ function Spring:Play(graph: Frame?)
 			local ratio = Instance.new("UIAspectRatioConstraint", dot)
 			ratio.AspectRatio = 1
 
-			dot.Position = UDim2.new(self.Time*.1, 0, 1-multiplier, 0)
+			dot.Position = UDim2.new(self.Time/self.TimeLength, 0, 1-graphY, 0)
 		end
 	end)
 end
@@ -328,8 +368,8 @@ function RoPhone:CreateIsland(island: CanvasGroup)
 	self.Island = island
 end
 
-function RoPhone:CreateSpring(object: GuiObject, mass: number, stiffness: number, damping: number, properties: {[string]: any})
-	return Spring.new(object, mass, stiffness, damping, properties)
+function RoPhone:CreateSpring(object: GuiObject, response: number, damping: number, properties: {[string]: any})
+	return Spring.new(object, response, damping, properties)
 end
 
 function RoPhone:CreateNotification(appId: number, message: string, imageId: number?)
