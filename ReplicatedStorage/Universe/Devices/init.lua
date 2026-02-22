@@ -320,15 +320,61 @@ Grid.__index = Grid
 
 local viewportSize = workspace.CurrentCamera.ViewportSize
 
+local function CreateGrid(gridSize: Vector2)
+	local grid = {}
+	
+	for i = 1, gridSize.X do
+		grid[i] = {}
+		for j = 1, gridSize.Y do
+			grid[i][j] = false
+		end
+	 end
+
+	 return grid
+end
+
 function Grid.new(container: Frame | CanvasGroup, gridSize: Vector2)
 	local self = setmetatable({}, Grid)
 
+	self.Grid = CreateGrid(gridSize)
+
 	self.GridSize = gridSize
+	self.GridSizeUpdated = Signal.new()
 
 	self.Container = container
 	self.Objects = {}
 
+	self.GridSizeUpdated:Connect(function(newGridSize)
+		self.Grid = CreateGrid(newGridSize)
+
+		for object, properties in pairs(self.Objects) do
+			self:AddObject(object, properties)
+		end
+	end)
+
 	return self
+end
+
+function Grid:CalculatePosition(tileSize: Vector2)
+	local accepted = true
+
+	for i, row in pairs(self.Grid) do
+		for j, occupied in pairs(row) do
+			accepted = true
+
+			if not occupied then
+				for y = 1, tileSize.Y do
+					if not accepted then break end
+					for _, v in pairs(self.Grid[y]) do
+						if not accepted then break end
+						if v then accepted = false end
+					end
+				end
+
+				return i, j
+			end
+		end
+	end
 end
 
 function Grid:AddObject(object: GuiObject)
@@ -351,26 +397,48 @@ function Grid:AddObject(object: GuiObject)
 	-- Update object size to match rounded tile size
 	object.Size = UDim2.fromScale(objectSize.X/self.GridSize.X, objectSize.Y/self.GridSize.Y)
 
+	local gridPosition = self:CalculatePosition(objectSize)
+
 	-- Add object to objects table
 	self.Objects[object] = {
 		TileSize = objectSize,
-		Position = UDim2.fromScale(0,0)
+		Position = gridPosition
 	}
 end
 
 function Grid:UpdateSize(gridSize: Vector2)
 	self.GridSize = gridSize
+	self.GridSizeUpdated:Fire(gridSize)
 end
 
 local App = {}
 App.__index = App
 
-function App.new(appName: string, appFrame: CanvasGroup, appImageId: number)
+function App.new(appName: string, appFrame: CanvasGroup, appImageId: number, phoneCornerRadius: UDim?, phoneAspectRatio: number?)
 	local self = setmetatable({}, App)
 
 	self.Name = appName
 	self.Frame = appFrame
 	self.ImageId = appImageId
+
+	local appCorner = self.Frame:FindFirstAncestorOfClass("UICorner") 
+	local appRatio = self.Frame:FindFirstAncestorOfClass("UIAspectRatioConstraint")
+
+	if phoneCornerRadius then
+		if not appCorner then
+			appCorner = Instance.new("UICorner", self.Frame)
+		end
+		
+		appCorner.CornerRadius = phoneCornerRadius
+	end
+
+	if phoneAspectRatio then
+		if not appRatio then
+			appRatio = Instance.new("UIAspectRatioConstraint", self.Frame)
+		end
+
+		appRatio.AspectRatio = phoneAspectRatio
+	end
 
 	self.Open = false
 	self.Minimized = false
@@ -406,11 +474,31 @@ end
 local RoPhone = {}
 RoPhone.__index = RoPhone
 
-function RoPhone.new(phoneFrame: Frame, screen: CanvasGroup)
+function RoPhone.new(phoneFrame: Frame, screen: CanvasGroup, aspectRatio: number?, cornerRadius: UDim?)
 	local self = setmetatable({}, RoPhone)
 
 	self.PhoneFrame = phoneFrame
 	self.Screen = screen
+
+	if cornerRadius then
+		self.CornerRadius = cornerRadius
+		
+		local phoneCorner = Instance.new("UICorner", self.PhoneFrame)
+		local screenCorner = Instance.new("UICorner", self.Screen)
+
+		phoneCorner.CornerRadius = cornerRadius
+		screenCorner.CornerRadius = cornerRadius
+	end
+	
+	if aspectRatio then
+		self.AspectRatio = aspectRatio
+
+		local phoneRatio = Instance.new("UIAspectRatioConstraint", self.PhoneFrame)
+		local screenRatio = Instance.new("UIAspectRatioConstraint", self.Screen)
+
+		phoneRatio.AspectRatio = aspectRatio
+		screenRatio.AspectRatio = aspectRatio
+	end
 
 	self.Lockscreen = nil
 	self.Password = nil
