@@ -347,37 +347,86 @@ function Grid.new(container: Frame | CanvasGroup, gridSize: Vector2)
 	self.GridSizeUpdated:Connect(function(newGridSize)
 		self.Grid = CreateGrid(newGridSize)
 
-		for object, properties in pairs(self.Objects) do
-			self:AddObject(object, properties)
+		for object, v in pairs(self.Objects) do
+			self:AddObject(object)
 		end
 	end)
 
 	return self
 end
 
-function Grid:CalculatePosition(tileSize: Vector2)
+local function LoopIndex()
+	
+end
+
+local function LoopGrid(grid: {}, gridSize: Vector2, tileSize: Vector2, index: Vector2?)
 	local accepted = true
 
-	for i, row in pairs(self.Grid) do
+	local markGrid = index and true or false
+
+	local indexX = index and index.X or 0
+	local indexY = index and index.Y or 0
+
+	for i, row in pairs(grid) do
+		indexY = i
+
 		for j, occupied in pairs(row) do
-			accepted = true
+			indexX = j
 
-			if not occupied then
-				for y = 1, tileSize.Y do
+			if markGrid and j >= index.X and j < index.X + tileSize.X and i >= index.Y and i < index.Y + tileSize.Y then
+				grid[indexY][indexX] = true
+				continue
+			elseif markGrid then
+				continue
+			end
+
+			accepted = not occupied
+
+			print(accepted)
+
+			if tileSize.X + indexX - 1 > gridSize.X or tileSize.Y + indexY - 1 > gridSize.Y then
+				accepted = false
+			end
+
+			if not accepted then continue end
+
+			for y = 1, tileSize.Y - 1 do
+				if not accepted then break end
+				for x = 1, tileSize.X - 1 do
 					if not accepted then break end
-					for _, v in pairs(self.Grid[y]) do
-						if not accepted then break end
-						if v then accepted = false end
-					end
+					if grid[y][x] then accepted = false end
 				end
-
-				return i, j
 			end
 		end
 	end
+
+	if markGrid then
+		return grid
+	else
+		return accepted and Vector2.new(indexX, indexY) or false
+	end
 end
 
-function Grid:AddObject(object: GuiObject)
+function Grid:CalculatePosition(tileSize: Vector2)
+	-- Find the grid index for the object
+	local index = LoopGrid(self.Grid, self.GridSize, tileSize)
+
+	-- Mark grid
+	if index then
+		LoopGrid(self.Grid, self.GridSize, tileSize, index)
+	else
+		warn("Failed to find available grid position for object of tile size: ", tileSize)
+		return
+	end
+
+	-- Create a screen position for the object based on the grid index and tile size
+	return UDim2.fromScale(
+		(tileSize.X/self.GridSize.X)/2 + (((index.X-1)/self.GridSize.X)/1),
+		(tileSize.Y/self.GridSize.Y)/2 + (((index.Y-1)/self.GridSize.Y)/1)
+	)
+end
+
+function Grid:AddObject(object: GuiObject, tileSize: Vector2?)
 	local objectSizeX = object.Size.X.Scale
 	local objectSizeY = object.Size.Y.Scale
 
@@ -390,20 +439,31 @@ function Grid:AddObject(object: GuiObject)
 
 	-- Rounded tile size, always an integer
 	local objectSize = Vector2.new(
-		math.round(objectSizeX*self.GridSize.X),
-		math.round(objectSizeY*self.GridSize.Y)
+		tileSize and tileSize.X or math.round(objectSizeX*self.GridSize.X) > 0 or 1,
+		tileSize and tileSize.Y or math.round(objectSizeY*self.GridSize.Y) > 0 or 1
 	)
 
 	-- Update object size to match rounded tile size
 	object.Size = UDim2.fromScale(objectSize.X/self.GridSize.X, objectSize.Y/self.GridSize.Y)
 
 	local gridPosition = self:CalculatePosition(objectSize)
+	print(gridPosition.X.Scale, gridPosition.Y.Scale)
+
+	if not gridPosition then
+		warn("Failed to add object to grid: No available position")
+		return
+	end
+
+	-- Update object position to calculated position
+	object.Position = gridPosition
 
 	-- Add object to objects table
 	self.Objects[object] = {
 		TileSize = objectSize,
 		Position = gridPosition
 	}
+
+	return gridPosition
 end
 
 function Grid:UpdateSize(gridSize: Vector2)
@@ -444,6 +504,8 @@ function App.new(appName: string, appFrame: CanvasGroup, appImageId: number, pho
 	self.Minimized = false
 	self.Closed = true
 
+	self.Button = Instance.new("ImageButton")
+
 	return self
 end
 
@@ -479,6 +541,8 @@ function RoPhone.new(phoneFrame: Frame, screen: CanvasGroup, aspectRatio: number
 
 	self.PhoneFrame = phoneFrame
 	self.Screen = screen
+	self.Homescreen = self.Screen:WaitForChild("Homescreen")
+	self.AppsFrame = self.Homescreen:WaitForChild("AppsFrame")
 
 	if cornerRadius then
 		self.CornerRadius = cornerRadius
@@ -504,6 +568,7 @@ function RoPhone.new(phoneFrame: Frame, screen: CanvasGroup, aspectRatio: number
 	self.Password = nil
 	self.Island = nil
 
+	self.AppGrid = Grid.new(self.Homescreen, Vector2.new(4,6))
 	self.Apps = {}
 	self.OpenedApps = {}
 
@@ -514,12 +579,15 @@ function RoPhone.new(phoneFrame: Frame, screen: CanvasGroup, aspectRatio: number
 end
 
 function RoPhone:CreateApp(appName: string, appFrame: CanvasGroup, appImage: number): number
+	local appId = #self.Apps + 1
 	local app = App.new(appName, appFrame, appImage)
 
-	local appId = #self.Apps + 1
+	app.Button.Name = appId
+	app.Button.Parent = self.AppsFrame
+	self.AppGrid:AddObject(app.Button)
 
 	self.Apps[appId] = app
-	return appId
+	return appId, app
 end
 
 function RoPhone:CreateLockscreen(lockscreen: CanvasGroup, password: number?)
@@ -543,6 +611,10 @@ end
 
 function RoPhone:CreateSpring(object: GuiObject, response: number, damping: number, properties: {[string]: any})
 	return Spring.new(object, response, damping, properties)
+end
+
+function RoPhone:CreateSetting()
+	
 end
 
 function RoPhone:CreateNotification(appId: number, message: string, imageId: number?)
