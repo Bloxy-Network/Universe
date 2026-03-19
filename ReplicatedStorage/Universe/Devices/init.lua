@@ -355,10 +355,6 @@ function Grid.new(container: Frame | CanvasGroup, gridSize: Vector2)
 	return self
 end
 
-local function LoopIndex()
-	
-end
-
 local function LoopGrid(grid: {}, gridSize: Vector2, tileSize: Vector2, index: Vector2?)
 	local accepted = true
 
@@ -382,19 +378,16 @@ local function LoopGrid(grid: {}, gridSize: Vector2, tileSize: Vector2, index: V
 
 			accepted = not occupied
 
-			print(accepted)
-
 			if tileSize.X + indexX - 1 > gridSize.X or tileSize.Y + indexY - 1 > gridSize.Y then
 				accepted = false
 			end
 
 			if not accepted then continue end
 
-			for y = 1, tileSize.Y - 1 do
+			for y = indexY, indexY + tileSize.Y - 1 do
 				if not accepted then break end
-				for x = 1, tileSize.X - 1 do
-					if not accepted then break end
-					if grid[y][x] then accepted = false end
+				for x = indexX, indexX + tileSize.X - 1 do
+					if grid[y][x] then accepted = false break end
 				end
 			end
 		end
@@ -660,7 +653,5 @@ Device.__index = Device
 function Device.CreatePhone(phoneFrame: Frame, screen: CanvasGroup)
 	return RoPhone.new(phoneFrame, screen)
 end
-
-
 
 return Device
